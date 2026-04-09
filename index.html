@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Brass Engine - Steampunk Arcade</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rye&family=Special+Elite&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+        
+        body, html {
+            width: 100%; height: 100%; 
+            background-color: #1a110a; 
+            background-image: repeating-linear-gradient(45deg, #1f140c 25%, transparent 25%, transparent 75%, #1f140c 75%, #1f140c), repeating-linear-gradient(45deg, #1f140c 25%, #1a110a 25%, #1a110a 75%, #1f140c 75%, #1f140c);
+            background-position: 0 0, 10px 10px;
+            background-size: 20px 20px;
+            font-family: 'Special Elite', monospace;
+            display: flex; justify-content: center; align-items: center;
+            color: #d8c3a5; overflow: hidden;
+        }
+
+        #arcade-machine {
+            display: flex; flex-direction: column; align-items: center;
+            width: 100%; max-width: 480px; height: 96%; max-height: 920px;
+            background: linear-gradient(180deg, #4a3018 0%, #2b1d12 100%);
+            border-radius: 24px 24px 0 0;
+            border: 4px solid #8b5a2b;
+            border-bottom: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), inset 0 0 20px rgba(0,0,0,0.8), inset 0 2px 5px rgba(255,215,0,0.2);
+            position: relative;
+        }
+
+        #arcade-machine::before {
+            content: ''; position: absolute; top: 10px; left: 10px; right: 10px; bottom: 0;
+            border: 1px solid rgba(218, 165, 32, 0.3); border-radius: 14px 14px 0 0; pointer-events: none;
+        }
+
+        #arcade-marquee {
+            width: 85%; height: 55px; margin: 20px 0 15px 0;
+            background: linear-gradient(180deg, #d4af37, #aa7c11, #805c08); 
+            border: 2px solid #5a3d05;
+            border-radius: 4px; display: flex; justify-content: center; align-items: center;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.4), 0 5px 15px rgba(0,0,0,0.8);
+            position: relative; overflow: hidden;
+        }
+        
+        #arcade-marquee::after {
+            content:''; position:absolute; top:2px; left:2px; right:2px; bottom:2px;
+            border: 1px dashed rgba(90, 61, 5, 0.5); pointer-events:none;
+        }
+
+        #arcade-marquee h1 {
+            font-family: 'Rye', cursive;
+            font-size: 24px; margin: 0; color: #2b1d12; letter-spacing: 2px;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.5), -1px -1px 0px rgba(0,0,0,0.2);
+            z-index: 2;
+        }
+
+        #arcade-bezel {
+            width: 92%; flex: 1; 
+            background: #111;
+            border: 10px solid #3d352b; border-radius: 8px;
+            border-top-color: #4a4237; border-bottom-color: #2b251e;
+            box-shadow: inset 0 0 30px rgba(0,0,0,1), 0 10px 20px rgba(0,0,0,0.7);
+            position: relative; padding: 4px;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative; width: 100%; height: 100%; 
+            background-color: #c7b095;
+            overflow: hidden; border-radius: 4px;
+            box-shadow: inset 0 0 50px rgba(60, 40, 20, 0.9);
+            transition: background-color 0.5s;
+        }
+
+        #game-container.fever-mode {
+            background-color: #8b2500;
+            animation: boilerPulse 0.8s infinite alternate;
+        }
+        @keyframes boilerPulse {
+            0% { box-shadow: inset 0 0 50px rgba(200,50,0,0.9), inset 0 0 100px rgba(0,0,0,0.8); }
+            100% { box-shadow: inset 0 0 100px rgba(255,100,0,0.8), inset 0 0 20px rgba(0,0,0,0.5); }
+        }
+
+        .grid-bg {
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background-image: linear-gradient(rgba(100, 60, 30, 0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 60, 30, 0.15) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform-origin: center center;
+            z-index: 1; pointer-events: none;
+            opacity: 0.8;
+        }
+
+        #crt-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99;
+            background: radial-gradient(circle, transparent 50%, rgba(30,20,10,0.6) 150%);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        canvas { display: block; width: 100%; height: 100%; position: relative; z-index: 3; }
+        
+        .chromatic-aberration { animation: mech-shake 0.08s infinite alternate; }
+        .severe-aberration { animation: severe-mech-shake 0.05s infinite alternate; }
+        
+        @keyframes mech-shake {
+            0% { transform: translate(1px, 1px) rotate(0.2deg); }
+            100% { transform: translate(-1px, -1px) rotate(-0.2deg); }
+        }
+        @keyframes severe-mech-shake {
+            0% { transform: translate(3px, 2px) rotate(0.5deg); filter: blur(0.5px); }
+            100% { transform: translate(-3px, -2px) rotate(-0.5deg); filter: blur(0px); }
+        }
+        
+        #top-hud { position: absolute; top: 12px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 5; pointer-events: none; }
+        .hud-row { display: flex; gap: 10px; width: 92%; justify-content: space-between; }
+        
+        .hud-box { 
+            font-family: 'Special Elite', monospace; font-size: 10px; color: #3e2723; 
+            background: linear-gradient(135deg, #eaddcf, #c7b095); 
+            border: 2px solid #6d4c41; padding: 6px 8px; border-radius: 4px; 
+            flex: 1; text-align: center; box-shadow: inset 0 0 5px rgba(0,0,0,0.3), 0 4px 6px rgba(0,0,0,0.5); 
+        }
+        .hud-box span { color: #1a110a; font-size: 16px; font-weight: bold; display: block; margin-top: 3px; font-family: 'Rye', cursive;}
+        .hud-box.highlight { border-color: #27ae60; background: linear-gradient(135deg, #eaddcf, #a9dfbf); } 
+        .hud-box.highlight span { color: #145a32; }
+        .hud-box.warning { border-color: #c0392b; background: linear-gradient(135deg, #eaddcf, #f5b7b1); } 
+        .hud-box.warning span { color: #7b241c; }
+
+        .progress-container { width:92%; height:8px; background:#3e2723; margin-top:8px; border-radius:4px; border: 2px solid #1a110a; overflow:hidden; position:relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);}
+        #expBar { width:0%; height:100%; background: linear-gradient(90deg, #f39c12, #f1c40f); box-shadow: inset 0 2px 2px rgba(255,255,255,0.4); }
+
+        .fever-container { width:92%; display:flex; justify-content: space-between; align-items: center; margin-top:5px; background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 3px; border: 1px solid #5a3d05;}
+        .fever-text { font-size:10px; color:#f39c12; font-weight:bold; font-family: 'Rye'; text-shadow: 1px 1px #000; }
+        .fever-bar-bg { flex:1; height:6px; background:#1a110a; margin-left:5px; border-radius:3px; overflow:hidden; border: 1px solid #3e2723; }
+        #feverBar { width:0%; height:100%; background: linear-gradient(90deg, #c0392b, #e74c3c); transition: width 0.1s linear; box-shadow: inset 0 2px 2px rgba(255,255,255,0.3); }
+
+        #arcade-control-panel {
+            width: 100%; height: 160px;
+            background: linear-gradient(to bottom, #5c4033, #2b1d12);
+            border-top: 4px solid #8b5a2b;
+            transform-origin: top; transform: perspective(1000px) rotateX(15deg);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            padding: 20px 10px; gap: 12px; position: relative; z-index: 10;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.5), 0 -10px 20px rgba(0,0,0,0.8);
+        }
+
+        #controls-container { display: flex; gap: 20px; width: 100%; justify-content: center; flex-wrap: wrap; }
+        
+        .arcade-btn { border: none; outline: none; cursor: pointer; font-family: 'Rye', cursive; font-size: 14px; display: flex; justify-content: center; align-items: center; transition: all 0.1s; user-select: none; }
+        
+        .btn-mult { width: 46px; height: 46px; border-radius: 50%; color: #3e2723; background: radial-gradient(circle at 30% 30%, #f1c40f, #b8860b); box-shadow: 0 6px 0 #6b4e05, 0 10px 10px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.6); border: 2px solid #3e2723; text-shadow: 1px 1px rgba(255,255,255,0.4); }
+        .btn-mult:active, .btn-mult.active { transform: translateY(6px); box-shadow: 0 0px 0 #6b4e05, 0 2px 4px rgba(0,0,0,0.7), inset 0 4px 6px rgba(0,0,0,0.4); background: radial-gradient(circle at 30% 30%, #ffd700, #daa520); border-color: #1a110a; }
+        
+        .btn-mult.super { background: radial-gradient(circle at 30% 30%, #e74c3c, #900C3F); color: white; box-shadow: 0 6px 0 #581845, 0 10px 10px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.5); border: 2px solid #3e2723; text-shadow: 1px 1px black; }
+        .btn-mult.super:active, .btn-mult.super.active { transform: translateY(6px); box-shadow: 0 0px 0 #581845; background: radial-gradient(circle at 30% 30%, #ff5733, #c70039); }
+
+        #btn-drop { width: 220px; height: 50px; border-radius: 8px; font-size: 18px; color: #fff; text-shadow: 1px 1px 2px #000; letter-spacing: 2px; background: linear-gradient(180deg, #d35400, #a04000); box-shadow: 0 8px 0 #6e2c00, 0 12px 15px rgba(0,0,0,0.8), inset 0 2px 4px rgba(255,255,255,0.3); border: 2px solid #3e2723; margin-top: 5px; }
+        #btn-drop:active { transform: translateY(8px); box-shadow: 0 0px 0 #6e2c00, 0 4px 6px rgba(0,0,0,0.8), inset 0 4px 6px rgba(0,0,0,0.5); background: linear-gradient(180deg, #e67e22, #ba4a00); }
+        #btn-drop.disabled { filter: grayscale(1); opacity: 0.6; cursor: not-allowed; transform: translateY(8px); box-shadow: none; }
+
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; justify-content: center; align-items: center; z-index: 30; background: rgba(26, 17, 10, 0.85); backdrop-filter: blur(3px); }
+        .hidden { display: none !important; }
+        .panel { background: #eaddcf; background-image: radial-gradient(#d5c2a5 15%, transparent 16%), radial-gradient(#d5c2a5 15%, transparent 16%); background-size: 20px 20px; background-position: 0 0, 10px 10px; padding: 24px; border: 4px solid #6d4c41; border-radius: 8px; box-shadow: 0 15px 35px rgba(0,0,0,0.9), inset 0 0 20px rgba(109, 76, 65, 0.3); pointer-events: auto; width: 85%; display: flex; flex-direction: column; gap: 12px; text-align: center; max-height: 80%; overflow-y: auto;}
+        
+        h1 { color: #3e2723; font-family: 'Rye', cursive; font-size: 22px; margin: 0; text-shadow: 1px 1px 0px rgba(255,255,255,0.6); }
+        p { color: #5d4037; font-size: 13px; margin: 0; line-height: 1.6; font-weight: bold; }
+        
+        .start-btn { background: #27ae60; border: 2px solid #145a32; border-radius: 4px; color: #fff; padding: 12px; cursor: pointer; font-family: 'Rye'; font-size: 16px; text-shadow: 1px 1px 2px #000; box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 4px 6px rgba(0,0,0,0.3); transition: 0.1s; }
+        .start-btn:active { transform: translateY(2px); box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 2px 2px rgba(0,0,0,0.3); }
+        
+        .buff-btn { background: #d5c2a5; border: 2px solid #8d6e63; border-radius: 4px; color: #3e2723; padding: 12px; text-align: left; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 3px 5px rgba(0,0,0,0.2); }
+        .buff-btn:hover { background: #eaddcf; border-color: #5d4037; transform: translateX(5px); }
+        .buff-title { font-family: 'Rye'; color: #145a32; font-size: 14px; }
+        .buff-title.super { color: #900C3F; }
+        
+        .floating-text { position: absolute; font-size: 16px; font-family: 'Rye', cursive; color: #fff; pointer-events: none; z-index: 25; transform: translate(-50%, -50%); animation: floatUp 1s ease-out forwards; white-space: nowrap; text-shadow: 1px 1px 2px #000; }
+        .jackpot-text { font-size: 32px; color: #f1c40f; text-shadow: 2px 2px 0px #d35400, 0 0 15px #f39c12; animation: jackpotAnim 1.8s ease-out forwards; }
+        
+        @keyframes floatUp { 0% { opacity: 1; transform: translate(-50%, 0px) scale(0.5); } 20% { transform: translate(-50%, -10px) scale(1.2); } 100% { opacity: 0; transform: translate(-50%, -40px) scale(1); } }
+        @keyframes jackpotAnim { 0% { opacity: 1; transform: translate(-50%, 0px) scale(0.1) rotate(-10deg); } 15% { transform: translate(-50%, -20px) scale(1.5) rotate(5deg); } 30% { transform: translate(-50%, -30px) scale(1.2) rotate(-5deg); } 100% { opacity: 0; transform: translate(-50%, -80px) scale(2); filter: blur(2px); } }
+    </style>
+</head>
+<body>
+
+<div id="arcade-machine">
+    <div id="arcade-marquee">
+        <h1>Brass Engine</h1>
+    </div>
+
+    <div id="arcade-bezel">
+        <div id="game-container">
+            <div class="grid-bg"></div>
+            <canvas id="gameCanvas"></canvas>
+            <div id="crt-overlay"></div>
+            
+            <div id="top-hud">
+                <div class="hud-row">
+                    <div id="scoreDisplay" class="hud-box highlight">Poder de Vapor<br><span>Nv.0</span></div>
+                    <div id="packetsDisplay" class="hud-box" style="flex:1.2;">Esferas<br><span>20</span></div>
+                    <div id="threatDisplay" class="hud-box warning">Pressão<br><span>Nv.1</span></div>
+                </div>
+                <div class="progress-container">
+                    <div id="expBar"></div>
+                </div>
+                <div class="fever-container">
+                    <span class="fever-text">OVERDRIVE / </span>
+                    <div class="fever-bar-bg">
+                        <div id="feverBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="ui-layer">
+                <div id="startPanel" class="panel show">
+                    <h1 id="titleText" style="color:#145a32;">Sistema Operacional</h1>
+                    <p id="descText" style="display: none; margin-bottom: 15px;"></p>
+                    <button id="startBtn" class="start-btn">Iniciar Caldeira</button>
+                </div>
+
+                <div id="adPanel" class="panel hidden">
+                    <h1 style="color:#c0392b;">Falta de Pressão</h1>
+                    <p>Esferas insuficientes para o lançamento mecânico.</p>
+                    <p id="adStatusText" style="color:#d35400; margin: 10px 0;">Abasteça o motor assistindo a uma transmissão para +100 esferas!</p>
+                    <button id="btn-watch-ad" class="start-btn" style="background:#f39c12; border-color:#d35400;">▶ Abastecer (+100)</button>
+                    <button id="btn-game-over" class="buff-btn" style="text-align:center; margin-top:5px; align-items: center;">Desligar Motor</button>
+                </div>
+
+                <div id="upgradePanel" class="panel hidden">
+                    <h1>Melhoria Mecânica</h1>
+                    <div id="buffContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="arcade-control-panel">
+        <div id="controls-container">
+            <button class="arcade-btn btn-mult active" data-val="1">x1</button>
+            <button class="arcade-btn btn-mult" data-val="5">x5</button>
+            <button class="arcade-btn btn-mult" data-val="10">x10</button>
+        </div>
+        <button id="btn-drop" class="arcade-btn">Abrir Válvula</button>
+    </div>
+</div>
+
+<script>
+    const AudioSys = {
+        ctx: null, masterGain: null, compressor: null, noiseBuffer: null,
+        pitchStreak: 0, lastHitTime: 0, lastBounceTime: 0, lastSplitTime: 0, lastZapTime: 0,
+        lastRewardGoodTime: 0, lastRewardBadTime: 0, lastDropTime: 0,
+        
+        init() { 
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+                this.compressor = this.ctx.createDynamicsCompressor();
+                this.compressor.threshold.setValueAtTime(-15, this.ctx.currentTime);
+                this.compressor.knee.setValueAtTime(10, this.ctx.currentTime);
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.5;
+                this.compressor.connect(this.masterGain);
+                this.masterGain.connect(this.ctx.destination);
+
+                let bufferSize = this.ctx.sampleRate * 2;
+                this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                let data = this.noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            }
+            if (this.ctx.state === 'suspended') this.ctx.resume(); 
+        },
+
+        bounce() { 
+            let now = Date.now(); if(now - this.lastBounceTime < 35) return; this.lastBounceTime = now;
+            let freq = 120 + Math.random() * 40;
+            this.playTone(freq, 'triangle', 0.05, 0.08, freq * 0.5);
+            this.playTone(800 + Math.random() * 200, 'sine', 0.08, 0.03); 
+        },
+        
+        boost() { 
+            let now = Date.now(); if(now - this.lastSplitTime < 50) return; this.lastSplitTime = now;
+            for(let i=0; i<3; i++) { setTimeout(() => this.playTone(1000 + i*500, 'square', 0.02, 0.04), i * 15); }
+        },
+        
+        split() { 
+            let now = Date.now(); if(now - this.lastSplitTime < 50) return; this.lastSplitTime = now;
+            this.playNoise(0.15, 0.1); this.playTone(200, 'sawtooth', 0.2, 0.08, 50); 
+        },
+        
+        laserZapped() { 
+            let now = Date.now(); if(now - this.lastZapTime < 80) return; this.lastZapTime = now;
+            let t = this.ctx.currentTime; let noiseSource = this.ctx.createBufferSource();
+            noiseSource.buffer = this.noiseBuffer; let filter = this.ctx.createBiquadFilter();
+            filter.type = 'highpass'; filter.frequency.setValueAtTime(2000, t); filter.frequency.exponentialRampToValueAtTime(5000, t + 0.2);
+            let g = this.ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.2, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+            noiseSource.connect(filter); filter.connect(g); g.connect(this.compressor); noiseSource.start(t); noiseSource.stop(t + 0.2);
+        },
+
+        rewardGood(mult) { 
+            let now = Date.now(); if(now - this.lastRewardGoodTime < 40) return; this.lastRewardGoodTime = now;
+            let base = 1500;
+            if (mult >= 5) {
+                this.playTone(base, 'sine', 0.15, 0.08); 
+                setTimeout(() => this.playTone(base * 1.25, 'sine', 0.2, 0.08), 80);
+            } else {
+                this.playTone(base, 'sine', 0.15, 0.06); 
+            }
+        },
+
+        rewardBad() { 
+            let now = Date.now(); if(now - this.lastRewardBadTime < 40) return; this.lastRewardBadTime = now;
+            this.playTone(80, 'triangle', 0.3, 0.15, 20); this.playNoise(0.2, 0.03); 
+        }, 
+        
+        drop() { 
+            let now = Date.now(); if(now - this.lastDropTime < 30) return; this.lastDropTime = now;
+            this.playTone(400, 'triangle', 0.1, 0.05, 100); 
+        },
+
+        jackpot() { 
+            [1046, 1318, 1567, 2093].forEach((f, i) => {
+                setTimeout(() => { this.playTone(f, 'sine', 0.6, 0.1); this.playTone(f*1.01, 'sine', 0.5, 0.05); }, i * 120);
+            });
+        },
+
+        feverStart() { 
+            for(let i=0; i<10; i++) {
+                setTimeout(() => { this.playTone(100 + i*50, 'sawtooth', 0.1, 0.05 + i*0.01); this.laserZapped(); }, i * 100);
+            }
+        },
+
+        ui() { 
+            this.playTone(1200, 'square', 0.03, 0.05); setTimeout(() => this.playTone(800, 'square', 0.02, 0.03), 20);
+        },
+
+        upgrade() { 
+            this.playTone(300, 'triangle', 0.4, 0.1, 600); this.rewardGood(1); setTimeout(() => this.playTone(2000, 'sine', 0.5, 0.1), 200);
+        },
+
+        playTone(freq, type, duration, vol = 0.1, slideFreq = null) {
+            if (!this.ctx) return;
+            try {
+                let t = this.ctx.currentTime; let osc = this.ctx.createOscillator(); let gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, t); if (slideFreq) osc.frequency.exponentialRampToValueAtTime(slideFreq, t + duration);
+                gain.gain.setValueAtTime(vol, t); gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+                osc.connect(gain); gain.connect(this.compressor); osc.start(t); osc.stop(t + duration);
+            } catch(e) {}
+        },
+
+        playNoise(duration, vol) {
+            if (!this.ctx || !this.noiseBuffer) return;
+            try {
+                let t = this.ctx.currentTime; let ns = this.ctx.createBufferSource(); ns.buffer = this.noiseBuffer;
+                let g = this.ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+                ns.connect(g); g.connect(this.compressor); ns.start(t); ns.stop(t + duration);
+            } catch(e) {}
+        }
+    };
+
+    const MAX_PACKETS = 500; 
+    const MAX_PARTICLES = 500; 
+    
+    const POOL_PACKETS = Array.from({length: MAX_PACKETS}, () => ({ active: false, x:0, y:0, vx:0, vy:0, splitCooldown:0, bounceCooldown:0, isGlitch:false }));
+    const POOL_PARTICLES = Array.from({length: MAX_PARTICLES}, () => ({ active: false, x:0, y:0, vx:0, vy:0, color:'', alpha:0, size:0, decay:0 }));
+    
+    const slotRollups = Array(7).fill(null).map(() => ({ active: false, val: 0, displayVal: 0, timer: 0, scale: 1 }));
+
+    const FEVER_THRESHOLDS = [500, 1000, 5000]; 
+    let feverLevel = 0, feverEnergy = 0, feverTimer = 0, isFeverActive = false;
+
+    function getCurrentFeverMax() { return FEVER_THRESHOLDS[Math.min(feverLevel, FEVER_THRESHOLDS.length - 1)]; }
+
+    function addFeverEnergy() {
+        if (isFeverActive) return; feverEnergy++;
+        let currentMaxFever = getCurrentFeverMax();
+        if (feverEnergy >= currentMaxFever) {
+            isFeverActive = true; feverTimer = 60 * 8; feverEnergy = 0; feverLevel++; 
+            document.getElementById('game-container').classList.add('fever-mode');
+            AudioSys.feverStart(); triggerShake(10);
+        }
+        updateFeverUI();
+    }
+
+    function updateFeverUI() {
+        let bar = document.getElementById('feverBar');
+        if (isFeverActive) {
+            bar.style.width = ((feverTimer / (60 * 8)) * 100) + '%';
+            bar.style.background = '#f1c40f';
+        } else {
+            bar.style.width = ((feverEnergy / getCurrentFeverMax()) * 100) + '%';
+            bar.style.background = 'linear-gradient(90deg, #c0392b, #e74c3c)';
+        }
+    }
+
+    function spawnPacket(x, y, vx, vy, isGlitch = false) {
+        for(let i=0; i<MAX_PACKETS; i++) {
+            if(!POOL_PACKETS[i].active) {
+                let p = POOL_PACKETS[i]; p.active = true; p.x=x; p.y=y; p.vx=vx; p.vy=vy; p.splitCooldown=0; p.bounceCooldown=0; p.isGlitch = isGlitch; return true;
+            }
+        } return false;
+    }
+
+    let activePacketsCount = 0; 
+    function spawnParticles(x, y, color, intensity = 1, isExplosion = false) {
+        let intensityMult = activePacketsCount > 150 ? 0.2 : (activePacketsCount > 80 ? 0.5 : 1);
+        let numParticles = Math.floor(12 * intensity * intensityMult); if (numParticles <= 0) return;
+        let spawned = 0;
+        for(let i=0; i<MAX_PARTICLES && spawned < numParticles; i++) {
+            if(!POOL_PARTICLES[i].active) {
+                let p = POOL_PARTICLES[i]; let angle = Math.random() * Math.PI * 2; let speed = (isExplosion ? Math.random() * 6 + 1 : Math.random() * 3) * intensity; 
+                p.active = true; p.x=x; p.y=y; p.vx=Math.cos(angle)*speed; p.vy=Math.sin(angle)*speed; p.color=color; p.alpha=1; p.size=Math.random()*3+1; p.decay=Math.random()*0.02+0.01; spawned++;
+            }
+        }
+    }
+
+    const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
+    const container = document.getElementById('game-container'); const uiLayer = document.getElementById('ui-layer');
+    const startPanel = document.getElementById('startPanel'); const upgradePanel = document.getElementById('upgradePanel');
+    const adPanel = document.getElementById('adPanel'); const expBar = document.getElementById('expBar');
+
+    let width, height, animationFrameId, slotY = 0, startY = 0;
+    
+    const C_NORMAL = '#b8860b'; 
+    const C_BOOST = '#27ae60';  
+    const C_SPLIT = '#f1c40f';  
+    const C_KILL = '#c0392b';   
+    const C_PACKET = '#95a5a6'; 
+    const C_VOID = '#1a110a';   
+    const C_DEAD_NODE = '#5d4037'; 
+    const C_BAFFLE = '#8b5a2b'; 
+    
+    const STATE = { START: 0, PLAYING: 1, GAMEOVER: 2, UPGRADE: 3 }; let currentState = STATE.START;
+    
+    let GLOBAL = { gravity: 0.08, restitution: 0.65, maxSpeed: 12, packetRadius: 5.5, nodeRadius: 5 };
+
+    let packetsLeft = 20, maxPacketsEver = 20, currentLevel = 1, frameCount = 0, dropMultiplier = 1, hitStopFrames = 0, shakeIntensity = 0; 
+    let nodes = [], ports = [], lasers = []; let isWaitingForAd = false; 
+
+    // 离屏渲染球体
+    const offscreenBalls = { normal: null, glitch1: null, glitch2: null };
+    function generateOffscreenBalls() {
+        let r = GLOBAL.packetRadius;
+        let createOffscreen = (color, mult) => {
+            let size = r * mult;
+            let c = document.createElement('canvas');
+            c.width = size * 2 + 4; c.height = size * 2 + 4;
+            let ctxOff = c.getContext('2d');
+            let center = size + 2;
+
+            ctxOff.fillStyle = '#222'; 
+            ctxOff.beginPath(); ctxOff.arc(center, center, size, 0, Math.PI * 2); ctxOff.fill();
+            
+            let bgGrad = ctxOff.createRadialGradient(center - size/3, center - size/3, size/5, center, center, size);
+            bgGrad.addColorStop(0, '#fff'); bgGrad.addColorStop(0.3, color); bgGrad.addColorStop(1, '#333');
+            ctxOff.fillStyle = bgGrad; ctxOff.beginPath(); ctxOff.arc(center, center, size, 0, Math.PI * 2); ctxOff.fill();
+            return { canvas: c, offset: center };
+        };
+        offscreenBalls.normal = createOffscreen(C_PACKET, 1);
+        offscreenBalls.glitch1 = createOffscreen('#f1c40f', 1.5);
+        offscreenBalls.glitch2 = createOffscreen('#ffffff', 1.5);
+    }
+
+    let leftFlipper = { A: {x:0, y:0}, B: {x:0, y:0}, color: C_BAFFLE };
+    let rightFlipper = { A: {x:0, y:0}, B: {x:0, y:0}, color: C_BAFFLE };
+    let centerFlipper = { A: {x:0, y:0}, color: '#e67e22', pivotX: 0, pivotY: 0 };
+
+    const UPGRADE_THRESHOLDS = [100, 200, 500, 1000, 2000, 3000, 5000];
+    
+    const BUFF_POOL = [
+        { id: 'g1', name: "Engrenagens de Gravidade", req: 1, desc: "A atração é reduzida em 10% por molas ajustadas.", apply: () => GLOBAL.gravity *= 0.9 },
+        { id: 'b1', name: "Ligas de Alta Rejeição", req: 1, desc: "Aumenta a força do salto em 5%.", apply: () => GLOBAL.restitution *= 1.05 },
+        { id: 's1', name: "Bifurcador a Vapor", req: 1, desc: "Transforma 3 rebites em engrenagens de fissão.", apply: () => convertNodesToSplit(3) },
+        { id: 'm30', name: "Válvula de Pressão x30", req: 3, unique: true, unlocked: false, isSuper: true, desc: "Libera o manípulo dourado de x30.", apply: function() { this.unlocked = true; unlockMultiplier(30); } },
+        { id: 'm50', name: "Erupção de Caldeira x50", req: 5, unique: true, unlocked: false, isSuper: true, desc: "Libera o manípulo vermelho de x50.", apply: function() { this.unlocked = true; unlockMultiplier(50); } },
+        { id: 'm100', name: "Colapso Mecânico x100", req: 7, unique: true, unlocked: false, isSuper: true, desc: "Libera o despejo máximo de x100.", apply: function() { this.unlocked = true; unlockMultiplier(100); } }
+    ];
+
+    function convertNodesToSplit(count) {
+        let normalNodes = nodes.filter(n => n.baseType === 0 && n.y > startY + 100);
+        for(let i=0; i<count && normalNodes.length > 0; i++) {
+            let idx = Math.floor(Math.random() * normalNodes.length);
+            normalNodes[idx].baseType = 2; normalNodes[idx].type = 2; normalNodes.splice(idx, 1);
+        }
+    }
+
+    function unlockMultiplier(val) {
+        let container = document.getElementById('controls-container');
+        if (!document.querySelector(`.btn-mult[data-val="${val}"]`)) {
+            let btn = document.createElement('button'); btn.className = 'arcade-btn btn-mult super'; btn.setAttribute('data-val', val); btn.innerText = `x${val}`;
+            btn.addEventListener('click', () => { AudioSys.init(); AudioSys.ui(); document.querySelectorAll('.btn-mult').forEach(b => b.classList.remove('active')); btn.classList.add('active'); dropMultiplier = val; });
+            container.appendChild(btn);
+        }
+    }
+
+    function resetControls() {
+        document.getElementById('controls-container').innerHTML = `<button class="arcade-btn btn-mult active" data-val="1">x1</button><button class="arcade-btn btn-mult" data-val="5">x5</button><button class="arcade-btn btn-mult" data-val="10">x10</button>`;
+        dropMultiplier = 1;
+        document.querySelectorAll('.btn-mult').forEach(btn => { btn.addEventListener('click', () => { AudioSys.init(); AudioSys.ui(); document.querySelectorAll('.btn-mult').forEach(b => b.classList.remove('active')); btn.classList.add('active'); dropMultiplier = parseInt(btn.getAttribute('data-val')); }); });
+    }
+
+    function resize() { 
+        width = container.clientWidth; height = container.clientHeight; 
+        canvas.width = width; canvas.height = height; 
+        startY = 75; slotY = height - 55; 
+        generateOffscreenBalls(); 
+        if(currentState === STATE.START) initGrid(); 
+    }
+    window.addEventListener('resize', resize); resize();
+
+    function triggerShake(intensity = 5) { shakeIntensity = Math.max(shakeIntensity, intensity); }
+    function spawnFloatingText(text, x, y, color, isJackpot = false) {
+        let el = document.createElement('div'); el.className = isJackpot ? 'floating-text jackpot-text' : 'floating-text'; el.innerText = text; el.style.left = x + 'px'; el.style.top = y + 'px';
+        if(!isJackpot) { el.style.color = color; }
+        container.appendChild(el); setTimeout(() => { if (el.parentNode) el.remove(); }, isJackpot ? 1500 : 800);
+    }
+
+    function showAdPanel() {
+        if (!uiLayer.classList.contains('hidden')) return; 
+        uiLayer.classList.remove('hidden'); adPanel.classList.remove('hidden'); adPanel.classList.add('show');
+        document.getElementById('adStatusText').innerText = "Abasteça o motor assistindo a uma transmissão para +100 esferas!"; document.getElementById('adStatusText').style.color = "#d35400";
+        document.getElementById('btn-watch-ad').style.display = ''; document.getElementById('btn-game-over').style.display = '';
+    }
+
+    document.getElementById('btn-drop').addEventListener('click', () => {
+        if (currentState !== STATE.PLAYING || !uiLayer.classList.contains('hidden')) return;
+        if (packetsLeft < dropMultiplier) { triggerShake(3); showAdPanel(); return; }
+        if (activePacketsCount + dropMultiplier > MAX_PACKETS) { spawnFloatingText("Motor Cheio", width/2, height/2 + 50, C_SPLIT); return; }
+
+        packetsLeft -= dropMultiplier; updateHUD();
+        let dropInterval = isFeverActive ? 10 : Math.max(30, 300 / dropMultiplier); 
+
+        for (let i = 0; i < dropMultiplier; i++) {
+            setTimeout(() => {
+                if(currentState !== STATE.PLAYING) return;
+                let dropX = width/2 + (Math.random() - 0.5) * (width * 0.6); let dropY = startY - 20 + Math.random() * 10; 
+                let isGlitch = Math.random() < 0.001; 
+                if (spawnPacket(dropX, dropY, (Math.random()-0.5)*2, 0.5, isGlitch)) {
+                    if(i % 3 === 0) AudioSys.drop(); 
+                    if(activePacketsCount < 100) spawnParticles(dropX, dropY, isGlitch ? C_SPLIT : C_PACKET, 0.2);
+                }
+            }, i * dropInterval); 
+        }
+    });
+
+    document.getElementById('btn-watch-ad').addEventListener('click', function() {
+        AudioSys.ui(); let statusText = document.getElementById('adStatusText'); this.style.display = 'none'; document.getElementById('btn-game-over').style.display = 'none';
+        statusText.innerText = "Ajustando engrenagens de rádio..."; statusText.style.color = "#27ae60";
+        setTimeout(() => {
+            statusText.innerText = "Sinal fraco! Válvula forçada.\n\nComo compensação, 100 esferas caíram no funil."; statusText.style.color = "#c0392b"; AudioSys.rewardGood(10); 
+            setTimeout(() => { adPanel.classList.remove('show'); adPanel.classList.add('hidden'); uiLayer.classList.add('hidden'); packetsLeft += 100; updateHUD(); }, 1500);
+        }, 1200);
+    });
+
+    document.getElementById('btn-game-over').addEventListener('click', function() {
+        AudioSys.ui(); currentState = STATE.GAMEOVER;
+        adPanel.classList.remove('show'); adPanel.classList.add('hidden'); startPanel.classList.remove('hidden'); startPanel.classList.add('show');
+        let title = document.getElementById('titleText'); title.innerText = "Vapor Esgotado"; title.style.color = C_KILL; 
+        let desc = document.getElementById('descText'); desc.style.display = "block"; desc.innerHTML = `Andar Final: <span style="color:#27ae60; font-size:16px;">Nv.${currentLevel}</span>`;
+        document.getElementById('startBtn').innerText = "Reiniciar Caldeira";
+    });
+
+    function checkLevelUp() {
+        if (packetsLeft > maxPacketsEver) maxPacketsEver = packetsLeft;
+        let target = UPGRADE_THRESHOLDS[currentLevel - 1] || UPGRADE_THRESHOLDS[UPGRADE_THRESHOLDS.length-1];
+        expBar.style.width = Math.min(100, (maxPacketsEver / target) * 100) + "%";
+        if (currentLevel <= UPGRADE_THRESHOLDS.length && maxPacketsEver >= target) { currentLevel++; triggerLevelUp(); }
+    }
+
+    function triggerLevelUp() {
+        AudioSys.upgrade(); triggerShake(8); hitStopFrames = 0; currentState = STATE.UPGRADE; uiLayer.classList.remove('hidden');
+        document.getElementById('startPanel').classList.add('hidden'); upgradePanel.classList.remove('hidden'); upgradePanel.classList.add('show');
+        let buffContainer = document.getElementById('buffContainer'); buffContainer.innerHTML = '';
+        let availableBuffs = BUFF_POOL.filter(b => { if (currentLevel < b.req) return false; if (b.unique && b.unlocked) return false; return true; });
+        let shuffled = [...availableBuffs].sort(() => 0.5 - Math.random()); let choices = shuffled.slice(0, 3);
+        choices.forEach(buff => {
+            let btn = document.createElement('button'); btn.className = 'buff-btn'; let titleClass = buff.isSuper ? 'buff-title super' : 'buff-title';
+            btn.innerHTML = `<span class="${titleClass}">${buff.name}</span><span class="buff-desc">${buff.desc}</span>`;
+            btn.onclick = () => {
+                AudioSys.ui(); buff.apply(); uiLayer.classList.add('hidden'); upgradePanel.classList.remove('show'); upgradePanel.classList.add('hidden');
+                lasers.forEach(laser => { laser.onDuration = Math.min(120, laser.baseOn + currentLevel * 15); laser.offDuration = Math.max(40, laser.baseOff - currentLevel * 40); });
+                document.getElementById('scoreDisplay').innerHTML = `Poder de Vapor<br><span>Nv.${currentLevel}</span>`; document.getElementById('threatDisplay').innerHTML = `Pressão<br><span>Nv.${currentLevel}</span>`;
+                currentState = STATE.PLAYING; cancelAnimationFrame(animationFrameId); update(); 
+            };
+            buffContainer.appendChild(btn);
+        });
+    }
+
+    function updateHUD() {
+        document.getElementById('packetsDisplay').innerHTML = `Esferas<br><span>${packetsLeft}</span>`;
+        let activeBtn = document.querySelector('.btn-mult.active'); let currentCost = activeBtn ? parseInt(activeBtn.getAttribute('data-val')) : 1;
+        if(packetsLeft < currentCost) document.getElementById('btn-drop').classList.add('disabled'); else document.getElementById('btn-drop').classList.remove('disabled');
+        checkLevelUp();
+    }
+
+    function initGrid() {
+        nodes = []; ports = []; lasers = [];
+        const nodeAreaHeight = slotY - startY - 100; const spacingX = width / 8;
+        const rows = Math.floor(nodeAreaHeight / spacingX); const spacingY = nodeAreaHeight / rows;
+
+        for (let row = 0; row < rows; row++) {
+            let offsetX = (row % 2 === 0) ? spacingX / 2 : spacingX; let cols = (row % 2 === 0) ? 8 : 7;
+            for (let col = 0; col < cols; col++) {
+                let x = offsetX + col * spacingX; let y = startY + row * spacingY;
+                if (x < 20 || x > width - 20) continue;
+                let type = 0; let rand = Math.random();
+                if (rand < 0.12) type = 1; else if (rand < 0.08 && row > 2) type = 2; else if (rand < 0.04 && row > 3) type = 3; 
+                nodes.push({ x, y, radius: GLOBAL.nodeRadius, type, baseType: type, angle: Math.random() * Math.PI });
+            }
+        }
+        
+        if(rows > 4) {
+            lasers.push({ y: startY + Math.floor(rows*0.4)*spacingY, height: 4, isOn: false, timer: 0, baseOn: 20, baseOff: 400, onDuration: 20, offDuration: 400 });
+            lasers.push({ y: startY + Math.floor(rows*0.8)*spacingY, height: 4, isOn: false, timer: 100, baseOn: 15, baseOff: 450, onDuration: 15, offDuration: 450 });
+        }
+        updatePorts();
+    }
+
+    function updatePorts() {
+        ports = [];
+        let w20 = width * 0.12; 
+        let w5 = width * 0.08;
+        let w1 = width * 0.10;
+        let w0 = width - (w20*2 + w5*2 + w1*2); 
+        
+        let pLayout = [ 
+            {r:20, w:w20, c:'#3498db', txt: 'x20'}, 
+            {r:5,  w:w5,  c:'#e67e22', txt: 'x5'}, 
+            {r:1,  w:w1,  c:'#b8860b', txt: 'x1'}, 
+            {r:0,  w:w0,  c:C_VOID,    txt: ''}, 
+            {r:1,  w:w1,  c:'#b8860b', txt: 'x1'}, 
+            {r:5,  w:w5,  c:'#e67e22', txt: 'x5'}, 
+            {r:20, w:w20, c:'#3498db', txt: 'x20'} 
+        ];
+        
+        let currentX = 0;
+        for (let i = 0; i < pLayout.length; i++) {
+            let p = pLayout[i]; 
+            ports.push({ 
+                baseX: currentX, w: p.w, reward: p.r, 
+                isJackpot: p.r === 20, isVoid: (p.r === 0), color: p.c, text: p.txt
+            }); 
+            currentX += p.w;
+        }
+    }
+
+    function updateFlippers() {
+        let flipperLength = width * 0.28; 
+        let baseAngle = Math.PI / 6; let swingAngle = -Math.abs(Math.sin(frameCount * 0.012)) * (Math.PI / 2.5); 
+        let leftAngle = baseAngle + swingAngle; let rightAngle = Math.PI - leftAngle; let pivotY = slotY - 80;
+        leftFlipper.A = {x: -10, y: pivotY}; leftFlipper.B = {x: -10 + Math.cos(leftAngle) * flipperLength, y: pivotY + Math.sin(leftAngle) * flipperLength};
+        rightFlipper.A = {x: width + 10, y: pivotY}; rightFlipper.B = {x: width + 10 + Math.cos(rightAngle) * flipperLength, y: pivotY + Math.sin(rightAngle) * flipperLength};
+
+        let cfLength = width * 0.15; let cfAngle = frameCount * 0.035; centerFlipper.pivotX = width / 2; centerFlipper.pivotY = pivotY; 
+        centerFlipper.A = {x: centerFlipper.pivotX - Math.cos(cfAngle) * cfLength/2, y: centerFlipper.pivotY - Math.sin(cfAngle) * cfLength/2};
+        centerFlipper.B = {x: centerFlipper.pivotX + Math.cos(cfAngle) * cfLength/2, y: centerFlipper.pivotY + Math.sin(cfAngle) * cfLength/2};
+    }
+
+    function checkFlipperCollision(p, flipper, boostAmt) {
+        let A = flipper.A; let B = flipper.B; let dx = B.x - A.x; let dy = B.y - A.y; let l2 = dx * dx + dy * dy; if (l2 === 0) return false;
+        let t = Math.max(0, Math.min(1, ((p.x - A.x) * dx + (p.y - A.y) * dy) / l2));
+        let closestX = A.x + t * dx; let closestY = A.y + t * dy; let distX = p.x - closestX; let distY = p.y - closestY;
+        let distSq = distX * distX + distY * distY; let hitRadius = GLOBAL.packetRadius + 4; 
+        
+        if (distSq < hitRadius * hitRadius) {
+            let distance = Math.sqrt(distSq); if (distance === 0) { distX = 0; distY = -1; distance = 0.001; }
+            let nx = distX / distance; let ny = distY / distance; let overlap = hitRadius - distance + 0.1;
+            p.x += nx * overlap; p.y += ny * overlap;
+            let dot = p.vx * nx + p.vy * ny;
+            if (dot < 0) {
+                p.vx = (p.vx - 2 * dot * nx) * GLOBAL.restitution; p.vy = (p.vy - 2 * dot * ny) * GLOBAL.restitution;
+                p.vx += nx * boostAmt; p.vy += ny * boostAmt;
+                if (p.bounceCooldown <= 0) { AudioSys.bounce(); if(activePacketsCount < 150) spawnParticles(closestX, closestY, flipper.color, 0.3); p.bounceCooldown = 8; }
+            } else { p.vx += nx * (boostAmt / 2); p.vy += ny * (boostAmt / 2); }
+            return true;
+        } return false;
+    }
+
+    function update() {
+        if (currentState !== STATE.PLAYING) return;
+        if (hitStopFrames > 0) { hitStopFrames--; draw(); cancelAnimationFrame(animationFrameId); animationFrameId = requestAnimationFrame(update); return; }
+
+        frameCount++; updatePorts(); updateFlippers();
+        let portOffset = Math.sin(frameCount * 0.01) * (width * 0.03); 
+
+        if (isFeverActive) { feverTimer--; updateFeverUI(); if (feverTimer <= 0) { isFeverActive = false; document.getElementById('game-container').classList.remove('fever-mode'); updateFeverUI(); } }
+
+        slotRollups.forEach(r => { if (r.active) { r.timer--; r.displayVal += (r.val - r.displayVal) * 0.2; r.scale += (1 - r.scale) * 0.1; if (r.timer <= 0) r.active = false; } else { r.val = 0; r.displayVal = 0; r.scale = 1; } });
+
+        if (frameCount % 60 === 0) { let deadNodes = nodes.filter(n => n.type === 99); if (deadNodes.length > 0) { let recoverNode = deadNodes[Math.floor(Math.random() * deadNodes.length)]; recoverNode.type = recoverNode.baseType; if(activePacketsCount < 100) spawnParticles(recoverNode.x, recoverNode.y, C_NORMAL, 1); } }
+
+        lasers.forEach(laser => {
+            laser.timer++;
+            if (laser.isOn && laser.timer > laser.onDuration) { laser.isOn = false; laser.timer = 0; } 
+            else if (!laser.isOn && laser.timer > laser.offDuration) { laser.isOn = true; laser.timer = 0; if(activePacketsCount > 0) AudioSys.laserZapped(); }
+        });
+
+        activePacketsCount = POOL_PACKETS.filter(p=>p.active).length;
+
+        for (let i = 0; i < MAX_PACKETS; i++) {
+            let p = POOL_PACKETS[i]; if (!p.active) continue;
+
+            p.vy += GLOBAL.gravity; p.vx *= 0.985; p.vy *= 0.995; 
+            let speed = Math.hypot(p.vx, p.vy); if (speed > GLOBAL.maxSpeed) { p.vx = (p.vx/speed)*GLOBAL.maxSpeed; p.vy = (p.vy/speed)*GLOBAL.maxSpeed; }
+            p.x += p.vx; p.y += p.vy;
+
+            if (p.x - GLOBAL.packetRadius < 0) { p.x = GLOBAL.packetRadius; p.vx *= -GLOBAL.restitution; }
+            if (p.x + GLOBAL.packetRadius > width) { p.x = width - GLOBAL.packetRadius; p.vx *= -GLOBAL.restitution; }
+
+            checkFlipperCollision(p, leftFlipper, 2); checkFlipperCollision(p, rightFlipper, 2); checkFlipperCollision(p, centerFlipper, 1.5); 
+            
+            if (p.x - GLOBAL.packetRadius < 0) { p.x = GLOBAL.packetRadius; p.vx = Math.abs(p.vx); }
+            if (p.x + GLOBAL.packetRadius > width) { p.x = width - GLOBAL.packetRadius; p.vx = -Math.abs(p.vx); }
+
+            let packetDestroyed = false;
+            for(let laser of lasers) {
+                if (laser.isOn && p.y + GLOBAL.packetRadius > laser.y && p.y - GLOBAL.packetRadius < laser.y + laser.height) {
+                    if (!p.isGlitch) { AudioSys.laserZapped(); if(activePacketsCount < 200) spawnParticles(p.x, p.y, '#fff', 1, true); p.active = false; packetDestroyed = true; break; }
+                }
+            }
+            if(packetDestroyed) continue;
+
+            let hasSplitThisFrame = false;
+            for (let n of nodes) {
+                let dx = p.x - n.x; let dy = p.y - n.y; let distSq = dx*dx + dy*dy; let minDist = GLOBAL.packetRadius + n.radius;
+                
+                if (distSq < minDist*minDist) {
+                    let dist = Math.sqrt(distSq);
+                    
+                    if (n.type === 3) { 
+                        if (!p.isGlitch) { AudioSys.laserZapped(); if(activePacketsCount < 200) spawnParticles(p.x, p.y, C_KILL, 2, true); p.active = false; packetDestroyed = true; break; } 
+                        else { p.vy = -12; p.vx += (Math.random()-0.5)*5; }
+                    }
+                    
+                    let overlap = minDist - dist; let nx = dx / dist; let ny = dy / dist; p.x += nx * overlap; p.y += ny * overlap;
+                    let dot = p.vx * nx + p.vy * ny; p.vx = p.vx - 2 * dot * nx; p.vy = p.vy - 2 * dot * ny;
+                    
+                    let res = p.isGlitch ? GLOBAL.restitution * 1.3 : GLOBAL.restitution;
+                    p.vx = p.vx * res + (Math.random() - 0.5); p.vy = p.vy * res;
+
+                    if (n.type === 1) { 
+                        p.vy -= 4; p.vx *= 1.2; AudioSys.boost(); if(activePacketsCount < 100) spawnParticles(n.x, n.y, C_BOOST, 1); addFeverEnergy(); 
+                    } else if (n.type === 2 && !hasSplitThisFrame) { 
+                        AudioSys.split(); if(activePacketsCount < 100) spawnParticles(n.x, n.y, C_SPLIT, 2, true); n.type = 99; hasSplitThisFrame = true;
+                        if (activePacketsCount < 300) { spawnPacket(p.x, p.y, p.vx+3, p.vy-3, p.isGlitch); spawnPacket(p.x, p.y, p.vx-3, p.vy-3, p.isGlitch); } p.vy -= 3; addFeverEnergy(); 
+                    } else {
+                        if(n.type !== 99) { AudioSys.bounce(); if(activePacketsCount < 100) spawnParticles(n.x, n.y, C_NORMAL, 0.1); }
+                    }
+                }
+            }
+            if (packetDestroyed) continue;
+
+            if (p.y > slotY) {
+                let relativeX = p.x - portOffset; if(relativeX < 0) relativeX += width; if(relativeX > width) relativeX -= width;
+                for (let j = 0; j < ports.length; j++) {
+                    let port = ports[j];
+                    if (relativeX >= port.baseX && relativeX <= port.baseX + port.w) {
+                        let actualReward = port.reward; let isFeverSafe = isFeverActive && port.isVoid;
+                        if (isFeverSafe) actualReward = 10; if (p.isGlitch) actualReward *= 10; 
+
+                        if (actualReward > 0) {
+                            packetsLeft += actualReward; let r = slotRollups[j]; r.active = true; r.val += actualReward; r.timer = 90; r.scale = Math.min(r.scale + 0.3, 2.2); 
+                            if (port.isJackpot || p.isGlitch) { 
+                                AudioSys.jackpot(); 
+                                if(activePacketsCount < 200) spawnParticles(p.x, p.y, port.color, 4, true); 
+                                if(activePacketsCount < 50) { triggerShake(15); hitStopFrames = 6; } 
+                            } else { 
+                                if(activePacketsCount < 100) AudioSys.rewardGood(actualReward); 
+                                if(activePacketsCount < 150) spawnParticles(p.x, p.y, port.color, 1); 
+                            }
+                        } else if (port.isVoid) {
+                            if(activePacketsCount < 50) AudioSys.rewardBad(); if(activePacketsCount < 100) spawnParticles(p.x, p.y, '#333', 1);
+                        }
+                        updateHUD(); p.active = false; break;
+                    }
+                }
+            }
+            if (p.active && p.y > height) p.active = false; 
+        }
+
+        if (packetsLeft <= 0 && activePacketsCount === 0 && !isWaitingForAd && uiLayer.classList.contains('hidden')) {
+            isWaitingForAd = true; setTimeout(() => { if(currentState !== STATE.GAMEOVER && currentState !== STATE.UPGRADE && uiLayer.classList.contains('hidden')) showAdPanel(); isWaitingForAd = false; }, 800);
+        }
+
+        draw(); if(currentState !== STATE.UPGRADE && currentState !== STATE.GAMEOVER) { cancelAnimationFrame(animationFrameId); animationFrameId = requestAnimationFrame(update); }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        let offsetX = 0, offsetY = 0;
+        if (shakeIntensity > 0) { 
+            offsetX = (Math.random() - 0.5) * shakeIntensity; offsetY = (Math.random() - 0.5) * shakeIntensity; shakeIntensity -= 0.5; 
+            if (shakeIntensity > 12) { canvas.classList.add('severe-aberration'); canvas.classList.remove('chromatic-aberration'); } 
+            else if (shakeIntensity >= 1) { canvas.classList.add('chromatic-aberration'); canvas.classList.remove('severe-aberration'); } 
+            else { canvas.classList.remove('chromatic-aberration', 'severe-aberration'); }
+        } else { canvas.classList.remove('chromatic-aberration', 'severe-aberration'); }
+        
+        ctx.save(); ctx.translate(offsetX, offsetY);
+
+        lasers.forEach(laser => { 
+            if(laser.isOn) { 
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; ctx.fillRect(0, laser.y - 2, width, laser.height + 4); 
+                ctx.fillStyle = '#fff'; ctx.fillRect(0, laser.y, width, laser.height); 
+            } 
+            else if(laser.timer > laser.offDuration - 20 && Math.floor(laser.timer/4)%2===0){ 
+                ctx.fillStyle='rgba(255, 255, 255, 0.3)'; ctx.fillRect(0, laser.y, width, 2); 
+            } 
+        });
+        
+        nodes.forEach(n => {
+            let color = n.type===1?C_BOOST:(n.type===2?C_SPLIT:(n.type===3?C_KILL:(n.type===99?C_DEAD_NODE:C_NORMAL)));
+            let r = n.radius; 
+            
+            ctx.save(); ctx.translate(n.x, n.y);
+            
+            if(n.type===3) { 
+                ctx.fillStyle='#8b0000'; ctx.fillRect(-r, -r, r*2, r*2); 
+                ctx.fillStyle='#ff4500'; ctx.fillRect(-r+2, -r+2, r*2-4, r*2-4); 
+            } else {
+                if(n.type===2) { r += Math.sin(frameCount*0.1)*1.5; ctx.rotate(frameCount * 0.05 + n.angle); } 
+                else { ctx.rotate(n.angle); }
+
+                ctx.fillStyle = '#2b1d12'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, r - 1.5, 0, Math.PI*2); ctx.fill();
+                
+                if(n.type !== 99) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.arc(-r/3, -r/3, r/3, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#2b1d12'; ctx.beginPath(); ctx.arc(0, 0, r/4, 0, Math.PI*2); ctx.fill();
+                }
+            }
+            ctx.restore();
+        });
+
+        let portOffset = Math.sin(frameCount * 0.01) * (width * 0.03);
+        let slotHeight = height - slotY; 
+
+        ctx.save(); ctx.translate(portOffset, 0);
+        for(let duplicate = -1; duplicate <= 1; duplicate++) {
+            ctx.save(); ctx.translate(duplicate * width, 0);
+            ports.forEach((port, idx) => {
+                let isFeverSafe = isFeverActive && port.isVoid;
+                let displayColor = isFeverSafe ? C_BOOST : port.color;
+
+                if (port.isVoid && !isFeverSafe) { 
+                    ctx.fillStyle = '#110a05'; 
+                    ctx.fillRect(port.baseX, slotY, port.w, slotHeight); 
+                    
+                    ctx.save();
+                    ctx.beginPath(); ctx.rect(port.baseX, slotY, port.w, slotHeight); ctx.clip();
+                    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(139, 0, 0, 0.3)'; 
+                    for(let i = -50; i < port.w + 50; i += 12) {
+                        ctx.beginPath(); ctx.moveTo(port.baseX + i, slotY); ctx.lineTo(port.baseX + i - 30, height); ctx.stroke();
+                    }
+                    ctx.restore();
+                    
+                    let voidShadow = ctx.createLinearGradient(0, slotY, 0, slotY + 20);
+                    voidShadow.addColorStop(0, 'rgba(0,0,0,1)'); voidShadow.addColorStop(1, 'transparent');
+                    ctx.fillStyle = voidShadow; ctx.fillRect(port.baseX, slotY, port.w, slotHeight);
+
+                } else { 
+                    let bgGrad = ctx.createLinearGradient(port.baseX, 0, port.baseX + port.w, 0);
+                    bgGrad.addColorStop(0, '#1a110a'); 
+                    bgGrad.addColorStop(0.5, '#3e2723'); 
+                    bgGrad.addColorStop(1, '#1a110a');
+                    ctx.fillStyle = bgGrad; 
+                    ctx.fillRect(port.baseX, slotY, port.w, slotHeight);
+
+                    ctx.save(); 
+                    let steamGrad = ctx.createLinearGradient(0, slotY, 0, slotY + 45); 
+                    let alpha = port.reward === 20 ? 0.7 : 0.4;
+                    steamGrad.addColorStop(0, displayColor.replace(')', `, ${alpha})`).replace('rgb', 'rgba')); 
+                    if (displayColor.startsWith('#')) {
+                        let hexA = port.reward === 20 ? 'aa' : '66';
+                        steamGrad.addColorStop(0, displayColor + hexA);
+                    }
+                    steamGrad.addColorStop(1, 'transparent'); 
+                    ctx.fillStyle = steamGrad; 
+                    ctx.fillRect(port.baseX, slotY, port.w, slotHeight); 
+                    
+                    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                    ctx.fillRect(port.baseX + port.w * 0.2, slotY, port.w * 0.3, slotHeight);
+                    ctx.restore();
+
+                    if(port.text !== '') {
+                        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                        let plateW = Math.min(port.w * 0.8, 40);
+                        let plateX = port.baseX + (port.w - plateW) / 2;
+                        ctx.fillRect(plateX, slotY + 15, plateW, 14);
+                        
+                        ctx.fillStyle = displayColor;
+                        ctx.font = 'bold 10px Special Elite';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(port.text, port.baseX + port.w/2, slotY + 26);
+                    }
+                }
+
+                let pipeGrad = ctx.createLinearGradient(port.baseX, 0, port.baseX + 6, 0);
+                pipeGrad.addColorStop(0, '#2b1d12'); 
+                pipeGrad.addColorStop(0.4, '#b8860b'); 
+                pipeGrad.addColorStop(1, '#3e2723'); 
+                ctx.fillStyle = pipeGrad;
+                ctx.fillRect(port.baseX - 3, slotY, 6, slotHeight);
+                
+                ctx.fillStyle = '#b8860b';
+                ctx.beginPath(); ctx.arc(port.baseX, slotY, 4, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#1a110a';
+                ctx.beginPath(); ctx.arc(port.baseX, slotY, 1.5, 0, Math.PI*2); ctx.fill();
+
+                let rollup = slotRollups[idx];
+                if (rollup && rollup.active && Math.round(rollup.displayVal) > 0) {
+                    ctx.save();
+                    let shake = Math.sin(rollup.timer * 0.5) * (rollup.scale > 1.5 ? 2 : 0);
+                    let cx = port.baseX + port.w / 2 + shake; 
+                    let cy = slotY - 20 - (rollup.scale * 12); 
+                    
+                    ctx.translate(cx, cy); ctx.scale(rollup.scale, rollup.scale);
+                    
+                    ctx.fillStyle = 'rgba(43, 29, 18, 0.95)'; 
+                    ctx.strokeStyle = displayColor;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-18, -10); ctx.lineTo(18, -10); ctx.lineTo(23, -5); ctx.lineTo(23, 5);
+                    ctx.lineTo(18, 10); ctx.lineTo(-18, 10); ctx.lineTo(-23, 5); ctx.lineTo(-23, -5);
+                    ctx.closePath();
+                    ctx.fill(); ctx.stroke();
+
+                    ctx.fillStyle = displayColor; 
+                    ctx.shadowColor = displayColor; ctx.shadowBlur = 5;
+                    ctx.font = 'bold 13px Special Elite'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    
+                    let txt = `+${Math.round(rollup.displayVal)}`;
+                    ctx.fillText(txt, 0, 0); 
+                    ctx.restore();
+                }
+            });
+            ctx.restore();
+        }
+        ctx.restore();
+        
+        let beamGrad = ctx.createLinearGradient(0, slotY, 0, slotY + 8);
+        beamGrad.addColorStop(0, '#5a3d05');
+        beamGrad.addColorStop(0.5, '#b8860b'); 
+        beamGrad.addColorStop(1, '#2b1d12');
+        ctx.fillStyle = beamGrad;
+        ctx.fillRect(0, slotY - 4, width, 8);
+        
+        ctx.fillStyle = '#1a110a';
+        for(let rx = portOffset % 30; rx < width; rx += 30) {
+            ctx.beginPath(); ctx.arc(rx, slotY, 1.5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath(); ctx.arc(rx - 0.5, slotY - 0.5, 0.5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#1a110a';
+        }
+
+        ctx.lineCap = 'round'; 
+        
+        ctx.lineWidth = 10; ctx.strokeStyle = '#3e2723';
+        ctx.beginPath(); ctx.moveTo(leftFlipper.A.x, leftFlipper.A.y); ctx.lineTo(leftFlipper.B.x, leftFlipper.B.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(rightFlipper.A.x, rightFlipper.A.y); ctx.lineTo(rightFlipper.B.x, rightFlipper.B.y); ctx.stroke();
+        ctx.lineWidth = 6; ctx.strokeStyle = '#b8860b'; 
+        ctx.beginPath(); ctx.moveTo(leftFlipper.A.x, leftFlipper.A.y); ctx.lineTo(leftFlipper.B.x, leftFlipper.B.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(rightFlipper.A.x, rightFlipper.A.y); ctx.lineTo(rightFlipper.B.x, rightFlipper.B.y); ctx.stroke();
+        
+        ctx.lineWidth = 10; ctx.strokeStyle = '#3e2723';
+        ctx.beginPath(); ctx.moveTo(centerFlipper.A.x, centerFlipper.A.y); ctx.lineTo(centerFlipper.B.x, centerFlipper.B.y); ctx.stroke();
+        ctx.lineWidth = 6; ctx.strokeStyle = '#d35400';
+        ctx.beginPath(); ctx.moveTo(centerFlipper.A.x, centerFlipper.A.y); ctx.lineTo(centerFlipper.B.x, centerFlipper.B.y); ctx.stroke();
+
+        ctx.fillStyle = '#silver';
+        ctx.beginPath(); ctx.arc(leftFlipper.A.x, leftFlipper.A.y, 5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(rightFlipper.A.x, rightFlipper.A.y, 5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(centerFlipper.pivotX, centerFlipper.pivotY, 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#2b1d12'; 
+        ctx.beginPath(); ctx.arc(leftFlipper.A.x, leftFlipper.A.y, 2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(rightFlipper.A.x, rightFlipper.A.y, 2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(centerFlipper.pivotX, centerFlipper.pivotY, 3, 0, Math.PI*2); ctx.fill();
+
+        for(let i=0; i<MAX_PACKETS; i++) {
+            let p = POOL_PACKETS[i]; if(!p.active) continue;
+            let cache = p.isGlitch ? ((frameCount % 4 < 2) ? offscreenBalls.glitch1 : offscreenBalls.glitch2) : offscreenBalls.normal;
+            ctx.drawImage(cache.canvas, p.x - cache.offset, p.y - cache.offset);
+        }
+
+        for(let i=0; i<MAX_PARTICLES; i++) {
+            let pt = POOL_PARTICLES[i]; if(!pt.active) continue;
+            pt.x += pt.vx; pt.y += pt.vy; pt.alpha -= pt.decay;
+            if (pt.alpha <= 0) { pt.active = false; continue; }
+            ctx.globalAlpha = pt.alpha; 
+            ctx.fillStyle = pt.color; 
+            ctx.fillRect(pt.x - pt.size, pt.y - pt.size, pt.size * 2, pt.size * 2);
+        }
+        ctx.globalAlpha = 1.0;
+        ctx.restore();
+    }
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+        AudioSys.init(); AudioSys.ui(); uiLayer.classList.add('hidden'); startPanel.classList.add('hidden');
+        
+        let title = document.getElementById('titleText'); title.innerText = "Motor Ligado"; title.style.color = "#27ae60"; 
+        let desc = document.getElementById('descText'); desc.style.display = "none"; document.getElementById('startBtn').innerText = "Iniciar Caldeira";
+
+        BUFF_POOL.forEach(b => { if(b.unique) b.unlocked = false; }); resetControls();
+        slotRollups.forEach(r => { r.active = false; r.val = 0; r.displayVal = 0; });
+        
+        feverLevel = 0; feverEnergy = 0; feverTimer = 0; isFeverActive = false; 
+        updateFeverUI(); document.getElementById('game-container').classList.remove('fever-mode');
+
+        packetsLeft = 20; maxPacketsEver = 20; currentLevel = 1; frameCount = 0; expBar.style.width = "0%";
+        document.getElementById('scoreDisplay').innerHTML = `Poder de Vapor<br><span>Nv.1</span>`; document.getElementById('threatDisplay').innerHTML = `Pressão<br><span>Nv.1</span>`;
+        GLOBAL.gravity = 0.08; GLOBAL.restitution = 0.65; 
+        POOL_PACKETS.forEach(p=>p.active=false); POOL_PARTICLES.forEach(p=>p.active=false);
+        updateHUD(); initGrid(); currentState = STATE.PLAYING; 
+        
+        cancelAnimationFrame(animationFrameId); update();
+    });
+    
+    initGrid(); generateOffscreenBalls(); draw(); 
+</script>
+</body>
+</html>
